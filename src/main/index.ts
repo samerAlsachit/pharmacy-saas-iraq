@@ -1,6 +1,8 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { registerIpcHandlers } from './ipc';
+import { startSyncScheduler, stopSyncScheduler } from '../sync/scheduler';
+import { getServerUrl } from '../sync/connection';
 
 const isDev = !app.isPackaged;
 
@@ -32,9 +34,20 @@ function createWindow(): void {
   });
 }
 
+async function processSyncItem(item: { id: string; payload: string }): Promise<boolean> {
+  const serverUrl = getServerUrl();
+  const res = await fetch(`${serverUrl}/api/sync/push`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: item.payload,
+  });
+  return res.ok;
+}
+
 app.whenReady().then(() => {
   registerIpcHandlers();
   createWindow();
+  startSyncScheduler(processSyncItem);
 });
 
 app.on('window-all-closed', () => {
@@ -47,4 +60,8 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+app.on('before-quit', () => {
+  stopSyncScheduler();
 });

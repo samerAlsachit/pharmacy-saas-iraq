@@ -1,6 +1,8 @@
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
 import { enqueue, getPending, clearSynced } from '../sync/queue';
+import { checkConnection } from '../sync/connection';
+import { getConsecutiveFailures } from '../sync/scheduler';
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('db:searchProducts', async (_event, query: string) => {
@@ -90,5 +92,19 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('sync:clearSynced', async () => {
     return clearSynced();
+  });
+
+  ipcMain.handle('sync:checkConnection', async () => {
+    return checkConnection();
+  });
+
+  ipcMain.handle('sync:getStatus', async () => {
+    const pending = await getPending();
+    const online = await checkConnection();
+    return {
+      online,
+      pendingCount: pending.length,
+      consecutiveFailures: getConsecutiveFailures(),
+    };
   });
 }

@@ -52,5 +52,7 @@ interface Window {
     checkout: (items: { productId: string; qty: number; price: number }[]) => Promise<CheckoutResponse>;
     getPendingQueue: () => Promise<SyncQueueItem[]>;
     clearSyncedQueue: () => Promise<number>;
+    checkConnection: () => Promise<boolean>;
+    getSyncStatus: () => Promise<{ online: boolean; pendingCount: number; consecutiveFailures: number }>;
   };
 }

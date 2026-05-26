@@ -61,4 +61,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   clearSyncedQueue: (): Promise<number> =>
     ipcRenderer.invoke('sync:clearSynced'),
+
+  checkConnection: (): Promise<boolean> =>
+    ipcRenderer.invoke('sync:checkConnection'),
+
+  getSyncStatus: (): Promise<{ online: boolean; pendingCount: number; consecutiveFailures: number }> =>
+    ipcRenderer.invoke('sync:getStatus'),
 });
