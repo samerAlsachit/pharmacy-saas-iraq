@@ -19,10 +19,12 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && electron-builder install-app-deps",
     "pack": "electron-builder --dir",
     "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win"
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -64,7 +66,14 @@
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "prisma/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/@prisma/**",
+      "node_modules/better-sqlite3/**",
+      "node_modules/.prisma/**",
+      "prisma/**"
     ],
     "win": {
       "target": [
@@ -77,6 +86,19 @@
       ],
       "icon": null
     },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": null
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": null
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
@@ -85,8 +107,16 @@
       "createDesktopShortcut": true,
       "shortcutName": "نظام إدارة الصيدليات"
     },
+    "electronDist": "node_modules/electron/dist",
+    "extraResources": [
+      {
+        "from": "prisma/pharmacy.db",
+        "to": "pharmacy.db"
+      }
+    ],
     "extraMetadata": {
       "main": "dist/main/index.js"
-    }
+    },
+    "publish": null
   }
 }
