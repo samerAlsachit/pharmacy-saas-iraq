@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  username  String     @unique
+  role      String     @default("ASSISTANT")
+  pinHash   String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  logs      AuditLog[]
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  barcode       String          @unique
+  nameAr        String
+  nameEn        String
+  category      String
+  stockQty      Int             @default(0)
+  minThreshold  Int             @default(10)
+  expiryDate    DateTime
+  purchasePrice Float           @default(0)
+  sellPrice     Float
+  isControlled  Boolean         @default(false)
+  supplier      String?
+  updatedAt     DateTime        @updatedAt
+  items         TransactionItem[]
+}
+
+model Transaction {
+  id         String            @id @default(cuid())
+  createdAt  DateTime          @default(now())
+  total      Float
+  payment    String            @default("CASH")
+  cashierId  String
+  items      TransactionItem[]
+  syncStatus String            @default("PENDING")
+}
+
+model TransactionItem {
+  id        String      @id @default(cuid())
+  txId      String
+  productId String
+  qty       Int
+  price     Float
+  product   Product     @relation(fields: [productId], references: [id])
+  tx        Transaction @relation(fields: [txId], references: [id])
+
+  @@index([txId])
+  @@index([productId])
+}
+
+model SyncQueue {
+  id        String   @id @default(cuid())
+  payload   String
+  deviceId  String
+  createdAt DateTime @default(now())
+  status    String   @default("PENDING")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model SyncCursor {
+  id       String   @id @default(cuid())
+  deviceId String   @unique
+  lastSync DateTime @default(now())
+}
