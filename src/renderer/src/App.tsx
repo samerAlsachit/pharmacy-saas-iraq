@@ -3,10 +3,11 @@ import { SearchBar } from '../../ui/components/SearchBar';
 import { Cart } from '../../ui/components/Cart';
 import { LoginScreen } from '../../ui/components/LoginScreen';
 import { Dashboard } from '../../ui/components/Dashboard';
+import { SupplierInvoice } from '../../ui/components/SupplierInvoice';
 import { AuditLogViewer } from '../../ui/components/AuditLogViewer';
 import { useAuthStore, canViewCost } from '../../ui/stores/auth-store';
 
-type View = 'pos' | 'dashboard';
+type View = 'pos' | 'dashboard' | 'suppliers';
 
 function App() {
   const { isAuthenticated, user, logout } = useAuthStore();
@@ -56,6 +57,14 @@ function App() {
                 >
                   المؤشرات
                 </button>
+                <button
+                  onClick={() => setView('suppliers')}
+                  className={`px-3 py-1 rounded-lg text-xs transition-colors ${
+                    view === 'suppliers' ? 'bg-white/20 text-white' : 'text-blue-200 hover:text-white'
+                  }`}
+                >
+                  الموردين
+                </button>
               </nav>
             </div>
             <div className="flex items-center gap-3">
@@ -91,8 +100,10 @@ function App() {
               <Cart />
             </div>
           </div>
-        ) : (
+        ) : view === 'dashboard' ? (
           <Dashboard />
+        ) : (
+          <SupplierInvoice />
         )}
       </main>
     </div>

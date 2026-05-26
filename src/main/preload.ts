@@ -101,6 +101,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     dailySales: { date: string; total: number }[];
   }> => ipcRenderer.invoke('db:dashboard'),
 
+  getSuppliers: (): Promise<string[]> => ipcRenderer.invoke('supplier:list'),
+
+  exportSupplierProducts: (supplierName: string): Promise<Product[]> =>
+    ipcRenderer.invoke('supplier:export', supplierName),
+
+  importPreview: (rows: { name: string; barcode?: string; price?: number; qty?: number }[]): Promise<{
+    input: { name: string; barcode?: string; price?: number; qty?: number };
+    match: { id: string; nameAr: string; nameEn: string; barcode: string } | null;
+    confidence: string;
+  }[]> => ipcRenderer.invoke('supplier:importPreview', rows),
+
+  confirmImport: (items: { productId: string; newPrice: number; newQty: number }[]): Promise<{ ok: boolean; count: number }> =>
+    ipcRenderer.invoke('supplier:confirmImport', items),
+
   getRecentTransactions: (limit?: number): Promise<{ id: string; total: number; createdAt: string; items: { qty: number }[] }[]> =>
     ipcRenderer.invoke('db:getRecentTransactions', limit),
 });

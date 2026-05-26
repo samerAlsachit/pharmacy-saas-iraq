@@ -148,6 +148,89 @@ export function registerIpcHandlers(): void {
     return { logs, total };
   });
 
+  ipcMain.handle('supplier:list', async () => {
+    const db = getDb();
+    const result = await db.product.findMany({
+      where: { supplier: { not: null } },
+      select: { supplier: true },
+      distinct: ['supplier'],
+    });
+    return result.map((r) => r.supplier).filter(Boolean);
+  });
+
+  ipcMain.handle('supplier:export', async (_event, supplierName: string) => {
+    const db = getDb();
+    return db.product.findMany({
+      where: { supplier: supplierName },
+      orderBy: { nameAr: 'asc' },
+    });
+  });
+
+  ipcMain.handle('supplier:importPreview', async (_event, rows: { name: string; barcode?: string; price?: number; qty?: number }[]) => {
+    const db = getDb();
+    const allProducts = await db.product.findMany({ select: { id: true, nameAr: true, nameEn: true, barcode: true, purchasePrice: true, sellPrice: true, stockQty: true } });
+
+    const matches = rows.map((row) => {
+      const exact = allProducts.find((p) => p.barcode === row.barcode);
+      if (exact) {
+        return {
+          input: row, match: exact, confidence: 'exact' as const,
+        };
+      }
+
+      const name = row.name?.trim().toLowerCase() || '';
+      const fuzzy = allProducts
+        .map((p) => {
+          const pAr = p.nameAr?.toLowerCase() || '';
+          const pEn = p.nameEn?.toLowerCase() || '';
+          let score = 0;
+          if (pAr.includes(name) || name.includes(pAr)) score = 0.9;
+          else if (pEn.includes(name) || name.includes(pEn)) score = 0.8;
+          else if (pAr.split(' ').some((w) => name.includes(w))) score = 0.6;
+          else if (pEn.split(' ').some((w) => name.includes(w))) score = 0.5;
+          return { product: p, score };
+        })
+        .filter((m) => m.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+      return {
+        input: row,
+        match: fuzzy[0]?.product || null,
+        confidence: fuzzy[0]?.score >= 0.9 ? 'high' as const : fuzzy[0]?.score >= 0.6 ? 'medium' as const : fuzzy[0] ? 'low' as const : 'none' as const,
+        alternatives: fuzzy.slice(0, 3).map((f) => f.product),
+      };
+    });
+
+    return matches;
+  });
+
+  ipcMain.handle('supplier:confirmImport', async (_event, items: { productId: string; newPrice: number; newQty: number }[]) => {
+    const db = getDb();
+    const tx = await db.$transaction(async (db) => {
+      const results = [];
+      for (const item of items) {
+        const updated = await db.product.update({
+          where: { id: item.productId },
+          data: {
+            stockQty: item.newQty,
+            purchasePrice: item.newPrice,
+            sellPrice: Math.round(item.newPrice * 1.2),
+          },
+        });
+        results.push(updated);
+      }
+      return results;
+    });
+    await db.auditLog.create({
+      data: {
+        userId: 'system',
+        action: 'STOCK_ADJUST',
+        details: `استيراد فاتورة مورد: ${items.length} منتج`,
+      },
+    });
+    return { ok: true, count: tx.length };
+  });
+
   ipcMain.handle('db:logAudit', async (_event, userId: string, action: string, details: string) => {
     const db = getDb();
     await db.auditLog.create({ data: { userId, action, details } });

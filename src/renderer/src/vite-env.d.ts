@@ -85,5 +85,17 @@ interface Window {
     }>;
 
     getRecentTransactions: (limit?: number) => Promise<{ id: string; total: number; createdAt: string; items: { qty: number }[] }[]>;
+
+    getSuppliers: () => Promise<string[]>;
+
+    exportSupplierProducts: (supplierName: string) => Promise<Product[]>;
+
+    importPreview: (rows: { name: string; barcode?: string; price?: number; qty?: number }[]) => Promise<{
+      input: { name: string; barcode?: string; price?: number; qty?: number };
+      match: { id: string; nameAr: string; nameEn: string; barcode: string } | null;
+      confidence: string;
+    }[]>;
+
+    confirmImport: (items: { productId: string; newPrice: number; newQty: number }[]) => Promise<{ ok: boolean; count: number }>;
   };
 }
