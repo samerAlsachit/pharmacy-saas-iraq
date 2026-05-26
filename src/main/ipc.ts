@@ -89,17 +89,26 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('db:login', async (_event, username: string, password: string) => {
     const db = getDb();
+
+    const logFail = (error: string) => {
+      db.auditLog.create({
+        data: { userId: 'system', action: 'LOGIN_FAILED', details: `محاولة دخول فاشلة للمستخدم ${username}: ${error}` },
+      }).catch(() => {});
+    };
+
     const user = await db.user.findUnique({ where: { username } });
-    if (!user) return { ok: false, error: 'المستخدم غير موجود' };
-    if (!user.isActive) return { ok: false, error: 'الحساب غير نشط' };
+    if (!user) { logFail('غير موجود'); return { ok: false, error: 'المستخدم غير موجود' }; }
+    if (!user.isActive) { logFail('غير نشط'); return { ok: false, error: 'الحساب غير نشط' }; }
 
-    if (user.pinHash && verifyPassword(password, user.pinHash)) {
-      return { ok: true, user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role } };
-    }
+    const valid = user.pinHash
+      ? verifyPassword(password, user.pinHash)
+      : verifyPassword(password, user.password);
 
-    if (!verifyPassword(password, user.password)) {
-      return { ok: false, error: 'كلمة المرور خاطئة' };
-    }
+    if (!valid) { logFail('كلمة مرور خاطئة'); return { ok: false, error: 'كلمة المرور خاطئة' }; }
+
+    await db.auditLog.create({
+      data: { userId: user.id, action: 'LOGIN', details: `تسجيل دخول: ${user.displayName || user.username}` },
+    });
 
     return { ok: true, user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role } };
   });
@@ -124,5 +133,24 @@ export function registerIpcHandlers(): void {
       pendingCount: pending.length,
       consecutiveFailures: getConsecutiveFailures(),
     };
+  });
+
+  ipcMain.handle('db:getAuditLogs', async (_event, limit = 100, offset = 0) => {
+    const db = getDb();
+    const [logs, total] = await Promise.all([
+      db.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      db.auditLog.count(),
+    ]);
+    return { logs, total };
+  });
+
+  ipcMain.handle('db:logAudit', async (_event, userId: string, action: string, details: string) => {
+    const db = getDb();
+    await db.auditLog.create({ data: { userId, action, details } });
+    return { ok: true };
   });
 }

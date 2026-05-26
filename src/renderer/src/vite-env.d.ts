@@ -50,6 +50,14 @@ interface AuthUser {
   role: string;
 }
 
+interface AuditEntry {
+  id: string;
+  userId: string;
+  action: string;
+  details: string;
+  createdAt: string;
+}
+
 interface Window {
   electronAPI: {
     platform: string;
@@ -62,5 +70,9 @@ interface Window {
     clearSyncedQueue: () => Promise<number>;
     checkConnection: () => Promise<boolean>;
     getSyncStatus: () => Promise<{ online: boolean; pendingCount: number; consecutiveFailures: number }>;
+
+    getAuditLogs: (limit?: number, offset?: number) => Promise<{ logs: AuditEntry[]; total: number }>;
+
+    logAudit: (userId: string, action: string, details: string) => Promise<{ ok: boolean }>;
   };
 }

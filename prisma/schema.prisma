@@ -77,6 +77,8 @@ model AuditLog {
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model SyncCursor {

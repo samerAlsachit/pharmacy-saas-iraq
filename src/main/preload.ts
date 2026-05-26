@@ -50,6 +50,14 @@ export interface AuthUser {
   role: string;
 }
 
+export interface AuditEntry {
+  id: string;
+  userId: string;
+  action: string;
+  details: string;
+  createdAt: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   isElectron: true,
@@ -77,4 +85,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getSyncStatus: (): Promise<{ online: boolean; pendingCount: number; consecutiveFailures: number }> =>
     ipcRenderer.invoke('sync:getStatus'),
+
+  getAuditLogs: (limit?: number, offset?: number): Promise<{ logs: AuditEntry[]; total: number }> =>
+    ipcRenderer.invoke('db:getAuditLogs', limit, offset),
+
+  logAudit: (userId: string, action: string, details: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('db:logAudit', userId, action, details),
 });
