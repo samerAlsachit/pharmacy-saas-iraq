@@ -23,7 +23,7 @@ export function Cart() {
         })),
       );
       clearCart();
-      printReceipt(generateReceiptHtml(result));
+      printReceipt(generateReceiptHtml(result.transaction));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء إتمام البيع');
     } finally {

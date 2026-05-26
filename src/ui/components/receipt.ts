@@ -1,4 +1,4 @@
-export function generateReceiptHtml(result: CheckoutResult): string {
+export function generateReceiptHtml(result: { id: string; total: number; createdAt: string; items: { id: string; qty: number; price: number; product: Product }[] }): string {
   const date = new Date(result.createdAt).toLocaleString('ar-IQ');
   const lines = result.items.map(
     (item) => `

@@ -23,13 +23,24 @@ interface TransactionItemResult {
   product: Product;
 }
 
-interface CheckoutResult {
+interface CheckoutResponse {
+  transaction: {
+    id: string;
+    total: number;
+    payment: string;
+    cashierId: string;
+    createdAt: string;
+    items: TransactionItemResult[];
+  };
+  syncQueueId: string;
+}
+
+interface SyncQueueItem {
   id: string;
-  total: number;
-  payment: string;
-  cashierId: string;
+  payload: string;
+  deviceId: string;
+  status: string;
   createdAt: string;
-  items: TransactionItemResult[];
 }
 
 interface Window {
@@ -38,6 +49,8 @@ interface Window {
     isElectron: boolean;
     searchProducts: (query: string) => Promise<Product[]>;
     getProductByBarcode: (barcode: string) => Promise<Product | null>;
-    checkout: (items: { productId: string; qty: number; price: number }[]) => Promise<CheckoutResult>;
+    checkout: (items: { productId: string; qty: number; price: number }[]) => Promise<CheckoutResponse>;
+    getPendingQueue: () => Promise<SyncQueueItem[]>;
+    clearSyncedQueue: () => Promise<number>;
   };
 }

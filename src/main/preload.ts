@@ -23,22 +23,42 @@ export interface TransactionItemResult {
   product: Product;
 }
 
-export interface CheckoutResult {
+export interface CheckoutResponse {
+  transaction: {
+    id: string;
+    total: number;
+    payment: string;
+    cashierId: string;
+    createdAt: string;
+    items: TransactionItemResult[];
+  };
+  syncQueueId: string;
+}
+
+export interface SyncQueueItem {
   id: string;
-  total: number;
-  payment: string;
-  cashierId: string;
+  payload: string;
+  deviceId: string;
+  status: string;
   createdAt: string;
-  items: TransactionItemResult[];
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   isElectron: true,
+
   searchProducts: (query: string): Promise<Product[]> =>
     ipcRenderer.invoke('db:searchProducts', query),
+
   getProductByBarcode: (barcode: string): Promise<Product | null> =>
     ipcRenderer.invoke('db:getProductByBarcode', barcode),
-  checkout: (items: { productId: string; qty: number; price: number }[]): Promise<CheckoutResult> =>
+
+  checkout: (items: { productId: string; qty: number; price: number }[]): Promise<CheckoutResponse> =>
     ipcRenderer.invoke('db:checkout', items),
+
+  getPendingQueue: (): Promise<SyncQueueItem[]> =>
+    ipcRenderer.invoke('sync:getPending'),
+
+  clearSyncedQueue: (): Promise<number> =>
+    ipcRenderer.invoke('sync:clearSynced'),
 });

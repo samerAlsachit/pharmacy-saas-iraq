@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
+import { enqueue, getPending, clearSynced } from '../sync/queue';
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('db:searchProducts', async (_event, query: string) => {
@@ -30,7 +31,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('db:checkout', async (_event, items: { productId: string; qty: number; price: number }[]) => {
     const db = getDb();
 
-    return db.$transaction(async (tx) => {
+    const transaction = await db.$transaction(async (tx) => {
       for (const item of items) {
         const product = await tx.product.findUnique({ where: { id: item.productId } });
         if (!product) throw new Error(`المنتج غير موجود: ${item.productId}`);
@@ -39,7 +40,7 @@ export function registerIpcHandlers(): void {
 
       const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-      const transaction = await tx.transaction.create({
+      const txRecord = await tx.transaction.create({
         data: {
           total,
           payment: 'CASH',
@@ -66,11 +67,28 @@ export function registerIpcHandlers(): void {
         data: {
           userId: 'local',
           action: 'CHECKOUT',
-          details: `عملية بيع ${transaction.id}: ${items.length} صنف، المجموع ${total}`,
+          details: `عملية بيع ${txRecord.id}: ${items.length} صنف، المجموع ${total}`,
         },
       });
 
-      return transaction;
+      return txRecord;
     });
+
+    const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const syncEntry = await enqueue('CHECKOUT', {
+      transactionId: transaction.id,
+      total,
+      items: items.map((i) => ({ productId: i.productId, qty: i.qty, price: i.price })),
+    });
+
+    return { transaction, syncQueueId: syncEntry.id };
+  });
+
+  ipcMain.handle('sync:getPending', async () => {
+    return getPending();
+  });
+
+  ipcMain.handle('sync:clearSynced', async () => {
+    return clearSynced();
   });
 }
