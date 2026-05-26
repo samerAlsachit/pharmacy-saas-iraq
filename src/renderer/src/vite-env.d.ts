@@ -16,11 +16,28 @@ interface Product {
   updatedAt: string;
 }
 
+interface TransactionItemResult {
+  id: string;
+  qty: number;
+  price: number;
+  product: Product;
+}
+
+interface CheckoutResult {
+  id: string;
+  total: number;
+  payment: string;
+  cashierId: string;
+  createdAt: string;
+  items: TransactionItemResult[];
+}
+
 interface Window {
   electronAPI: {
     platform: string;
     isElectron: boolean;
     searchProducts: (query: string) => Promise<Product[]>;
     getProductByBarcode: (barcode: string) => Promise<Product | null>;
+    checkout: (items: { productId: string; qty: number; price: number }[]) => Promise<CheckoutResult>;
   };
 }

@@ -1,9 +1,35 @@
-import { usePosStore, getCartTotal, getCartCount } from '../stores/pos-store';
+import { useState } from 'react';
+import { usePosStore, getCartTotal, getCartCount, CartItem } from '../stores/pos-store';
+import { generateReceiptHtml, printReceipt } from './receipt';
 
 export function Cart() {
   const { cart, updateCartQty, removeFromCart, clearCart } = usePosStore();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const total = getCartTotal(cart);
   const count = getCartCount(cart);
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    setError(null);
+    setIsCheckingOut(true);
+
+    try {
+      const result = await window.electronAPI.checkout(
+        cart.map((item: CartItem) => ({
+          productId: item.product.id,
+          qty: item.qty,
+          price: item.price,
+        })),
+      );
+      clearCart();
+      printReceipt(generateReceiptHtml(result));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء إتمام البيع');
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   if (cart.length === 0) {
     return (
@@ -95,10 +121,15 @@ export function Cart() {
           <span>الإجمالي</span>
           <span className="text-blue-600">{total.toLocaleString()} د.ع</span>
         </div>
+        {error && (
+          <p className="text-sm text-red-600 text-center">{error}</p>
+        )}
         <button
-          className="w-full mt-3 py-3 bg-gradient-to-l from-green-600 to-green-500 text-white rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-600 transition-all shadow-md active:scale-[0.98]"
+          onClick={handleCheckout}
+          disabled={isCheckingOut}
+          className="w-full mt-3 py-3 bg-gradient-to-l from-green-600 to-green-500 text-white rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-600 transition-all shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          إتمام البيع ({count})
+          {isCheckingOut ? 'جاري إتمام البيع...' : `إتمام البيع (${count})`}
         </button>
       </div>
     </div>
