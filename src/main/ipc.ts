@@ -153,4 +153,62 @@ export function registerIpcHandlers(): void {
     await db.auditLog.create({ data: { userId, action, details } });
     return { ok: true };
   });
+
+  ipcMain.handle('db:getRecentTransactions', async (_event, limit = 10) => {
+    const db = getDb();
+    return db.transaction.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { items: true },
+    });
+  });
+
+  ipcMain.handle('db:dashboard', async () => {
+    const db = getDb();
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86400000);
+    const thirtyDays = new Date(now.getTime() + 30 * 86400000);
+
+    const [todayTxs, lowStock, expiring, last7TxGroups] = await Promise.all([
+      db.transaction.findMany({
+        where: { createdAt: { gte: todayStart, lt: todayEnd } },
+        include: {
+          items: {
+            include: { product: { select: { purchasePrice: true } } },
+          },
+        },
+      }),
+      db.$queryRawUnsafe<{ c: number }[]>('SELECT COUNT(*) as c FROM Product WHERE stockQty < minThreshold').then(r => Number(r[0].c)),
+      db.product.count({ where: { expiryDate: { lte: thirtyDays, gt: now } } }),
+      db.$queryRawUnsafe<{ date: string; total: number }[]>(
+        `SELECT DATE(createdAt) as date, SUM(total) as total
+         FROM Transaction
+         WHERE createdAt >= datetime('now', '-7 days')
+         GROUP BY DATE(createdAt)
+         ORDER BY date ASC`
+      ),
+    ]);
+
+    const todaySales = todayTxs.reduce((s, t) => s + t.total, 0);
+    let todayProfit = 0;
+    for (const tx of todayTxs) {
+      for (const item of tx.items) {
+        todayProfit += (item.price - item.product.purchasePrice) * item.qty;
+      }
+    }
+
+    return {
+      todaySales,
+      todayProfit,
+      todayTxCount: todayTxs.length,
+      lowStockCount: lowStock,
+      expiringSoonCount: expiring,
+      dailySales: (last7TxGroups as { date: string; total: number }[]).map(r => ({
+        date: r.date,
+        total: Number(r.total),
+      })),
+    };
+  });
 }

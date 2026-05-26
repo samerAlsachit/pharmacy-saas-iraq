@@ -91,4 +91,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   logAudit: (userId: string, action: string, details: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('db:logAudit', userId, action, details),
+
+  getDashboard: (): Promise<{
+    todaySales: number;
+    todayProfit: number;
+    todayTxCount: number;
+    lowStockCount: number;
+    expiringSoonCount: number;
+    dailySales: { date: string; total: number }[];
+  }> => ipcRenderer.invoke('db:dashboard'),
+
+  getRecentTransactions: (limit?: number): Promise<{ id: string; total: number; createdAt: string; items: { qty: number }[] }[]> =>
+    ipcRenderer.invoke('db:getRecentTransactions', limit),
 });

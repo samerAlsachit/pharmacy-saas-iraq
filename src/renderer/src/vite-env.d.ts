@@ -74,5 +74,16 @@ interface Window {
     getAuditLogs: (limit?: number, offset?: number) => Promise<{ logs: AuditEntry[]; total: number }>;
 
     logAudit: (userId: string, action: string, details: string) => Promise<{ ok: boolean }>;
+
+    getDashboard: () => Promise<{
+      todaySales: number;
+      todayProfit: number;
+      todayTxCount: number;
+      lowStockCount: number;
+      expiringSoonCount: number;
+      dailySales: { date: string; total: number }[];
+    }>;
+
+    getRecentTransactions: (limit?: number) => Promise<{ id: string; total: number; createdAt: string; items: { qty: number }[] }[]>;
   };
 }
