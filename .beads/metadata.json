@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "pharmacy_saas_iraq",
+  "project_id": "8b311f04-76d5-44cb-b52f-0aefbbad6939"
+}
