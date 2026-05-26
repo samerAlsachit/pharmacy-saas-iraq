@@ -43,9 +43,19 @@ export interface SyncQueueItem {
   createdAt: string;
 }
 
+export interface AuthUser {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   isElectron: true,
+
+  login: (username: string, password: string): Promise<{ ok: boolean; user?: AuthUser; error?: string }> =>
+    ipcRenderer.invoke('db:login', username, password),
 
   searchProducts: (query: string): Promise<Product[]> =>
     ipcRenderer.invoke('db:searchProducts', query),

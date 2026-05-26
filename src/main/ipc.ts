@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import { getDb } from '../db';
+import { verifyPassword } from '../db/auth';
 import { enqueue, getPending, clearSynced } from '../sync/queue';
 import { checkConnection } from '../sync/connection';
 import { getConsecutiveFailures } from '../sync/scheduler';
@@ -84,6 +85,23 @@ export function registerIpcHandlers(): void {
     });
 
     return { transaction, syncQueueId: syncEntry.id };
+  });
+
+  ipcMain.handle('db:login', async (_event, username: string, password: string) => {
+    const db = getDb();
+    const user = await db.user.findUnique({ where: { username } });
+    if (!user) return { ok: false, error: 'المستخدم غير موجود' };
+    if (!user.isActive) return { ok: false, error: 'الحساب غير نشط' };
+
+    if (user.pinHash && verifyPassword(password, user.pinHash)) {
+      return { ok: true, user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role } };
+    }
+
+    if (!verifyPassword(password, user.password)) {
+      return { ok: false, error: 'كلمة المرور خاطئة' };
+    }
+
+    return { ok: true, user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role } };
   });
 
   ipcMain.handle('sync:getPending', async () => {

@@ -1,6 +1,13 @@
 import { PrismaClient } from '@prisma/client';
+import { randomBytes, scryptSync } from 'crypto';
 
 const prisma = new PrismaClient();
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
 
 const products = [
   {
@@ -154,6 +161,8 @@ async function main() {
     update: {},
     create: {
       username: 'owner',
+      displayName: 'المالك',
+      password: hashPassword('admin123'),
       role: 'OWNER',
     },
   });
@@ -163,8 +172,16 @@ async function main() {
     update: {},
     create: {
       username: 'assistant',
+      displayName: 'الكاشير',
+      password: hashPassword('1234'),
       role: 'ASSISTANT',
     },
+  });
+
+  // Update existing users without password
+  await prisma.user.updateMany({
+    where: { password: undefined },
+    data: { password: hashPassword('admin123') },
   });
 
   console.log(`Created users: ${owner.username} (${owner.role}), ${assistant.username} (${assistant.role})`);

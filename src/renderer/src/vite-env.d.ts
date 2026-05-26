@@ -43,10 +43,18 @@ interface SyncQueueItem {
   createdAt: string;
 }
 
+interface AuthUser {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+}
+
 interface Window {
   electronAPI: {
     platform: string;
     isElectron: boolean;
+    login: (username: string, password: string) => Promise<{ ok: boolean; user?: AuthUser; error?: string }>;
     searchProducts: (query: string) => Promise<Product[]>;
     getProductByBarcode: (barcode: string) => Promise<Product | null>;
     checkout: (items: { productId: string; qty: number; price: number }[]) => Promise<CheckoutResponse>;

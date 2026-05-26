@@ -8,13 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  username  String     @unique
-  role      String     @default("ASSISTANT")
-  pinHash   String?
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  logs      AuditLog[]
+  id          String     @id @default(cuid())
+  username    String     @unique
+  displayName String     @default("")
+  password    String
+  role        String     @default("ASSISTANT")
+  pinHash     String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  logs        AuditLog[]
 }
 
 model Product {
