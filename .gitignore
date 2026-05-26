@@ -1,5 +1,20 @@
-
-# Beads / Dolt files (added by bd init)
-.dolt/
+node_modules/
+dist/
+release/
 *.db
+.dolt/
 .beads-credential-key
+
+# Env
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
