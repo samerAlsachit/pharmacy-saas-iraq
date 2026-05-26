@@ -36,10 +36,17 @@ function createWindow(): void {
 
 async function processSyncItem(item: { id: string; payload: string }): Promise<boolean> {
   const serverUrl = getServerUrl();
+  let payloadObj: Record<string, unknown>;
+  try {
+    payloadObj = JSON.parse(item.payload);
+  } catch {
+    return false;
+  }
+
   const res = await fetch(`${serverUrl}/api/sync/push`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: item.payload,
+    body: JSON.stringify({ deviceId: 'local', payload: payloadObj }),
   });
   return res.ok;
 }

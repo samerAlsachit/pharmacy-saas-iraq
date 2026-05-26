@@ -1,8 +1,11 @@
-import { Controller, Post, Get, Query, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Post, Get, Query, Body, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SyncService } from './sync.service';
 
 @ApiTags('Sync')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 @Controller('api/sync')
 export class SyncController {
   constructor(private readonly sync: SyncService) {}
@@ -14,8 +17,8 @@ export class SyncController {
   }
 
   @Get('pull')
-  @ApiOperation({ summary: 'Pull sync data since timestamp' })
-  pull(@Query('deviceId') deviceId: string, @Query('lastSync') lastSync: string) {
+  @ApiOperation({ summary: 'Pull delta data since last sync' })
+  pull(@Query('deviceId') deviceId: string, @Query('lastSync') lastSync?: string) {
     return this.sync.pull(deviceId, lastSync);
   }
 
